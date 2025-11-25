@@ -1,0 +1,46 @@
+# Miscellaneous
+*.py[cod]
+*.log
+
+# Python
+*.pyc
+__pycache__/
+*.egg-info/
+*.egg
+*.so
+*.pyd
+local_settings.py
+
+# Packages
+media/
+db.sqlite*
+*.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+*.ipynb_checkpoints/
+.pants.d/
+_build/
+.ropeproject/
+site/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pytest_cache/
+.pytest_describe/
+profile_default/
+ipython_config.py
+.ipython/
+.python-version
+Pipfile
+Pipfile.lock
+poetry.lock
+.pants.d/
+.local/share/
+.vscode/
+.idea/
+*spyder*
+*jupyter*
+*mkdocs*
