@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.feature_extraction.text import TfidfVectorizer
 from typing import List, Tuple, Dict
 
 class ContentRecommender:
@@ -68,6 +69,70 @@ class CollaborativeRecommender:
             if i < len(u1_albums) and u1_albums[i] in u2_albums:
                 score += 1
         return score
+
+    def calculate_tfidf_user_similarity(self, user1: int, user2: int) -> float:
+        """
+        Calculates similarity between two users based on TF-IDF vectors of their top items.
+        Returns the sum of cosine similarities for songs, artists, and albums.
+        """
+        songs1 = self.get_top_items(user1, 'songs')
+        songs2 = self.get_top_items(user2, 'songs')
+        artists1 = self.get_top_items(user1, 'artists')
+        artists2 = self.get_top_items(user2, 'artists')
+        albums1 = self.get_top_items(user1, 'albums')
+        albums2 = self.get_top_items(user2, 'albums')
+
+        # Handle empty lists cases to avoid empty vocabulary errors
+        if not (songs1 + songs2) or not (artists1 + artists2) or not (albums1 + albums2):
+            return 0.0
+
+        vectorizer = TfidfVectorizer()
+        
+        try:
+            tfidf_matrix_songs = vectorizer.fit_transform(songs1 + songs2)
+            tfidf_matrix_artists = vectorizer.fit_transform(artists1 + artists2)
+            tfidf_matrix_albums = vectorizer.fit_transform(albums1 + albums2)
+        except ValueError:
+            # Handles cases where vocab might be empty
+            return 0.0
+
+        # Separate the matrices for each list
+        tfidf_list_songs1 = tfidf_matrix_songs[:len(songs1)]
+        tfidf_list_songs2 = tfidf_matrix_songs[len(songs1):]
+        tfidf_list_artists1 = tfidf_matrix_artists[:len(artists1)]
+        tfidf_list_artists2 = tfidf_matrix_artists[len(artists1):]
+        tfidf_list_albums1 = tfidf_matrix_albums[:len(albums1)]
+        tfidf_list_albums2 = tfidf_matrix_albums[len(albums1):]
+
+        # Calculate cosine similarity
+        sim_songs = np.sum(cosine_similarity(tfidf_list_songs1, tfidf_list_songs2))
+        sim_artists = np.sum(cosine_similarity(tfidf_list_artists1, tfidf_list_artists2))
+        sim_albums = np.sum(cosine_similarity(tfidf_list_albums1, tfidf_list_albums2))
+        
+        return sim_songs + sim_artists + sim_albums
+
+    def get_similar_users_tfidf(self, user_id: int, threshold: float = 0.1, limit: int = 100) -> List[int]:
+        """Finds users similar to the given user using the TF-IDF metric."""
+        similar_users = []
+        
+        # Calculate self-similarity for normalization
+        self_sim = self.calculate_tfidf_user_similarity(user_id, user_id)
+        if self_sim == 0:
+            return []
+
+        # Search through first 'limit' users (optimization for demo purposes)
+        # In production, you'd pre-calculate this or use a nearest neighbor index
+        for i in range(1, limit + 1):
+            if i == user_id:
+                continue
+                
+            sim = self.calculate_tfidf_user_similarity(user_id, i)
+            ratio = sim / self_sim
+            
+            if ratio > threshold:
+                similar_users.append(i)
+                
+        return similar_users
 
     def get_shared_items(self, user1: int, user2: int, category: str) -> List[str]:
         items1 = self.get_top_items(user1, category)
