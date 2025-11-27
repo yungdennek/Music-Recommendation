@@ -7,84 +7,92 @@
 ## 2. Architecture & Tech Stack
 *   **Language**: Python 3.8+
 *   **Data Processing**: Pandas, NumPy, Scikit-learn
-*   **Modeling**: Surprise, LightFM, TensorFlow/PyTorch (TBD for advanced models)
+*   **Modeling**: Surprise, LightFM, TensorFlow/PyTorch (TBD)
 *   **APIs**: Spotify Web API (for metadata fetching)
 *   **Version Control**: Git & GitHub
 
-## 3. Implementation Phases
+## 3. Implementation Phases & Assignments
 
-### Phase 1: Data Acquisition & Infrastructure (Owner: Ananya)
-*   **Objective**: Set up the project foundation and prepare clean datasets for modeling.
-*   **Tasks**:
-    1.  [x] Initialize GitHub repository and project structure.
-    2.  [x] Download and store datasets:
-        *   Last.fm 360K
-        *   Last.fm 1K User Dataset
-        *   Free Music Archive
-        *   Spotify Million Playlist Dataset
-    3.  [x] **Data Preprocessing**:
-        *   Handle missing values and potential metadata gaps.
-        *   Normalize interaction scores (play counts) to a common scale.
-        *   Create initial User and Item feature vectors.
-    4.  [x] **Feature Engineering**:
-        *   Integrate Spotify API to fetch missing song metadata (audio features, genres).
-        *   Clean and standardize artist/track names across datasets.
+### Phase 1: Data Acquisition & Infrastructure
+*   **Status**: Done
+*   **Key Achievements**:
+    *   Datasets acquired (Last.fm, Spotify, etc.).
+    *   Data preprocessing and normalization pipelines built.
+    *   Feature engineering for song metadata.
 
-### Phase 2: Model Development (Parallel Execution)
+### Phase 2A: Content-Based Filtering
+*   **Status**: Done
+*   **Key Achievements**:
+    *   Item profile construction using metadata.
+    *   Similarity measures (Cosine) implemented.
+    *   `ContentRecommender` class functioning.
 
-#### Sub-Phase 2A: Content-Based Filtering (Owner: Eugene)
-*   **Focus**: Recommend items based on item attributes (audio features, tags, genres).
-*   **Tasks**:
-    1.  [x] Construct item profiles using metadata (from Spotify/FMA) and tags (Last.fm).
-    2.  [x] Create user profiles based on their interaction history with specific item attributes.
-    3.  [x] Implement similarity measures (Cosine Similarity, Euclidean Distance) to rank items.
-    4.  [x] **Deliverable**: A function/module that takes a User ID or Item ID and returns similar items based on content.
+### Phase 2B: Collaborative Filtering
+*   **Status**: Mostly Done (Memory-based approaches)
+*   **Key Achievements**:
+    *   User-User similarity logic implemented (`CollaborativeRecommender`).
+    *   TF-IDF based user profile comparison.
 
-#### Sub-Phase 2B: Collaborative Filtering (Owner: George)
-*   **Focus**: Recommend items based on similar user patterns (User-User, Item-Item).
-*   **Tasks**:
-    1.  [x] Construct the User-Item Interaction Matrix.
-    2.  [x] Implement Memory-Based approaches (User-Based & Item-Based KNN).
-    3.  [ ] Address scalability issues with large matrices (explore sampling techniques).
-    4.  [x] **Deliverable**: A function/module that returns recommendations based on user similarity.
-
-#### Sub-Phase 2C: Matrix Factorization (Owner: Scott)
-*   **Focus**: Uncover latent factors to handle data sparsity and improve prediction accuracy.
-*   **Tasks**:
-    1.  [ ] Implement Matrix Factorization techniques (SVD, ALS).
-    2.  [ ] Experiment with dimensionality reduction to find optimal latent factors.
-    3.  [ ] Tune hyperparameters (learning rate, regularization) to minimize RMSE.
-    4.  [ ] **Deliverable**: A trained MF model capable of predicting missing ratings/interactions.
+---
 
 ### Phase 3: Evaluation Framework (Owner: Raeeka)
-*   **Objective**: Rigorously test and compare model performance.
+*   **Goal**: We need to prove our model works.
 *   **Tasks**:
-    1.  [ ] Implement splitting strategy: Time-based splitting (Train on historical, Test on recent).
-    2.  [ ] Develop evaluation script to calculate:
-        *   **Accuracy**: RMSE, MAE
-        *   **Ranking**: Precision@K, Recall@K, F1@K
-        *   **Quality**: Diversity and Novelty scores
-    3.  [ ] Compare models against baselines (Popularity-based, Random).
-    4.  [ ] Conduct statistical significance testing.
+    1.  [ ] **Metrics Implementation**: Write functions to calculate:
+        *   RMSE / MAE (Accuracy)
+        *   Precision@K (Ranking)
+        *   Diversity/Novelty scores (optional but good).
+    2.  [ ] **Testing Loop**: Create a script that runs the Content and Collaborative models on a test set and outputs these numbers.
+    3.  [ ] **Comparison**: Generate a simple table comparing Model A vs Model B performance.
 
-### Phase 4: Integration & Application (Owner: Raeeka + Team)
-*   **Objective**: Combine models into a hybrid system and create a demo.
+### Phase 4: Advanced Modeling & Hybridization (Owner: Daniel)
+*   **Goal**: Combine approaches for better results.
 *   **Tasks**:
-    1.  [ ] **Hybridization**: Combine scores from CBF, CF, and MF (e.g., Weighted Average, Switching).
-    2.  [ ] Address specific challenges:
-        *   *Cold Start*: prioritizing Content-Based/Popularity for new users.
-        *   *Sparsity*: relying on Matrix Factorization.
-    3.  [ ] Build a simple interface (CLI or Web Streamlit/Flask) to demonstrate recommendations.
-    4.  [ ] Final Report and Presentation.
+    1.  [ ] **Matrix Factorization** (if not fully integrated): Explore SVD or ALS (using `Surprise` or `LightFM` library) for better scalability.
+    2.  [ ] **Hybrid Logic**: Create a `HybridRecommender` class that:
+        *   Takes predictions from Content-Based and Collaborative models.
+        *   Combines them (e.g., Weighted Average: `0.7 * CF + 0.3 * CB`).
+    3.  [ ] **Cold Start Handling**: Add logic to default to Content-Based/Popularity if a user has < 5 interactions.
 
-## 4. Timeline (Placeholder - To Be Filled)
-*   **Week 1**: Data Collection & Cleaning ([Date Range])
-*   **Week 2**: Baseline Models & Feature Engineering ([Date Range])
-*   **Week 3**: Advanced Modeling (CF, CBF, MF) ([Date Range])
-*   **Week 4**: Hybridization & Evaluation ([Date Range])
-*   **Week 5**: Final Polish & Demo ([Date Range])
+### Phase 5: Demo & Presentation (Owner: Ananya)
+*   **Goal**: Make it look good for the demo.
+*   **Tasks**:
+    1.  [ ] **Web Interface**: Build a minimal Streamlit app (or Flask) where:
+        *   User enters a song/artist.
+        *   System displays recommended songs.
+    2.  [ ] **Visualizations**: Create 2-3 charts for the report (e.g., Data distribution, Model performance comparison).
+    3.  [ ] **Presentation Slides**: Start drafting the deck based on the outline below.
 
-## 5. Missing Information / To-Do
-*   **API Keys**: Need Spotify Developer API credentials (Client ID, Client Secret).
-*   **Compute Resources**: Determine if local compute is sufficient or if cloud (Colab/AWS) is needed for large datasets.
-*   **Specific Libraries**: Finalize decision on deep learning frameworks (if any) beyond Scikit-learn/Surprise.
+---
+
+## 4. Project Presentation & Report Outline (15 Minutes Total)
+
+**Concept**: Keep it concise. Focus on "What we built" and "Does it work".
+
+1.  **Introduction (2 min)**
+    *   **Problem**: Music discovery is hard; users suffer from choice paralysis.
+    *   **Goal**: Build a hybrid recommender that balances accuracy and discovery.
+    *   **Dataset**: Briefly mention Last.fm / Spotify data used.
+
+2.  **Methodology (Architecture) (4 min)**
+    *   **Content-Based**: "We analyze song features (lyrics, audio) to find similar tracks."
+    *   **Collaborative Filtering**: "We find similar users to predict what you'd like."
+    *   **Hybrid Approach**: "We combine both to handle edge cases (Cold Start)." (Daniel's part)
+
+3.  **Evaluation & Results (4 min)** (Raeeka's part)
+    *   **Metrics**: RMSE, Precision@10.
+    *   **Comparison**: Bar chart showing Hybrid vs Single models.
+    *   **Key Findings**: "Hybrid performed X% better."
+
+4.  **Demo (3 min)** (Ananya's part)
+    *   Live walk-through of the Streamlit app.
+    *   Show a "Cold Start" example and a "Active User" example.
+
+5.  **Conclusion & Future Work (2 min)**
+    *   **Challenges**: Data sparsity, scalability.
+    *   **Future**: Deep Learning (RNNs for session-based), Real-time updates.
+
+## 5. Immediate Next Steps
+*   **Raeeka**: Start `evaluation.py`.
+*   **Daniel**: Start `hybrid_recommender.py`.
+*   **Ananya**: Initialize `app.py` (Streamlit).
