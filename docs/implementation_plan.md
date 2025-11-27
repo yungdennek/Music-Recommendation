@@ -17,16 +17,16 @@
 *   **Objective**: Set up the project foundation and prepare clean datasets for modeling.
 *   **Tasks**:
     1.  [x] Initialize GitHub repository and project structure.
-    2.  [ ] Download and store datasets:
+    2.  [x] Download and store datasets:
         *   Last.fm 360K
         *   Last.fm 1K User Dataset
         *   Free Music Archive
         *   Spotify Million Playlist Dataset
-    3.  [ ] **Data Preprocessing**:
+    3.  [x] **Data Preprocessing**:
         *   Handle missing values and potential metadata gaps.
         *   Normalize interaction scores (play counts) to a common scale.
         *   Create initial User and Item feature vectors.
-    4.  [ ] **Feature Engineering**:
+    4.  [x] **Feature Engineering**:
         *   Integrate Spotify API to fetch missing song metadata (audio features, genres).
         *   Clean and standardize artist/track names across datasets.
 
@@ -35,18 +35,18 @@
 #### Sub-Phase 2A: Content-Based Filtering (Owner: Eugene)
 *   **Focus**: Recommend items based on item attributes (audio features, tags, genres).
 *   **Tasks**:
-    1.  [ ] Construct item profiles using metadata (from Spotify/FMA) and tags (Last.fm).
-    2.  [ ] Create user profiles based on their interaction history with specific item attributes.
-    3.  [ ] Implement similarity measures (Cosine Similarity, Euclidean Distance) to rank items.
-    4.  [ ] **Deliverable**: A function/module that takes a User ID or Item ID and returns similar items based on content.
+    1.  [x] Construct item profiles using metadata (from Spotify/FMA) and tags (Last.fm).
+    2.  [x] Create user profiles based on their interaction history with specific item attributes.
+    3.  [x] Implement similarity measures (Cosine Similarity, Euclidean Distance) to rank items.
+    4.  [x] **Deliverable**: A function/module that takes a User ID or Item ID and returns similar items based on content.
 
 #### Sub-Phase 2B: Collaborative Filtering (Owner: George)
 *   **Focus**: Recommend items based on similar user patterns (User-User, Item-Item).
 *   **Tasks**:
-    1.  [ ] Construct the User-Item Interaction Matrix.
-    2.  [ ] Implement Memory-Based approaches (User-Based & Item-Based KNN).
+    1.  [x] Construct the User-Item Interaction Matrix.
+    2.  [x] Implement Memory-Based approaches (User-Based & Item-Based KNN).
     3.  [ ] Address scalability issues with large matrices (explore sampling techniques).
-    4.  [ ] **Deliverable**: A function/module that returns recommendations based on user similarity.
+    4.  [x] **Deliverable**: A function/module that returns recommendations based on user similarity.
 
 #### Sub-Phase 2C: Matrix Factorization (Owner: Scott)
 *   **Focus**: Uncover latent factors to handle data sparsity and improve prediction accuracy.
