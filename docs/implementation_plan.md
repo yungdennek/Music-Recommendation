@@ -45,7 +45,7 @@
     2.  [ ] **Testing Loop**: Create a script that runs the Content and Collaborative models on a test set and outputs these numbers.
     3.  [ ] **Comparison**: Generate a simple table comparing Model A vs Model B performance.
 
-### Phase 4: Advanced Modeling & Hybridization (Owner: Daniel)
+### Phase 4: Advanced Modeling & Hybridization (Owner: George)
 *   **Goal**: Combine approaches for better results.
 *   **Tasks**:
     1.  [ ] **Matrix Factorization** (if not fully integrated): Explore SVD or ALS (using `Surprise` or `LightFM` library) for better scalability.
