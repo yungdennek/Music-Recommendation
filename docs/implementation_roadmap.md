@@ -7,7 +7,7 @@
 | Data Acquisition | Done | Ananya | `data_loader.py` |
 | Content-Based Filtering | Done | Eugene | `recommender.py` |
 | Collaborative Filtering | Mostly Done | George | `recommender.py` |
-| Hybrid Recommender | In Progress | George/Daniel | `hybrid_recommender.py` |
+| Hybrid Recommender | In Progress | George | `hybrid_recommender.py` |
 | Evaluation Framework | In Progress | Raeeka | `evaluation.py` |
 | Matrix Factorization | Not Started | Scott | TBD |
 | Demo App | Exists | Ananya | `app.py` |
