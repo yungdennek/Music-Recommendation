@@ -1,7 +1,7 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-from src.data_loader import load_lyrics, load_user_top_tracks, load_user_top_artists
+from data_loader import load_lyrics, load_user_top_tracks, load_user_top_artists
 
 
 sns.set_style("whitegrid")
