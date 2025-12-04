@@ -9,17 +9,9 @@ def standardize_text(text): # remove extra whitespace and convert to lowercase
 
 def preprocess_user_top_tracks(filepath):
     df = pd.read_csv(filepath)
-    
-    # Remove mbid column
     df = df.drop('mbid', axis=1, errors='ignore')
-    
-    # Remove null values
     df = df.dropna()
-    
-    # Keep only entries with rank <= 30
     df = df[df['rank'] <= 30]
-    
-    # Standardize artist and track names
     df['artist_name'] = df['artist_name'].apply(standardize_text)
     df['track_name'] = df['track_name'].apply(standardize_text)
     
@@ -153,12 +145,12 @@ def main(skip_preprocessing=True):
         spotify_df = preprocess_spotify_millsongdata('spotify_millsongdata.csv')
         
         # Save preprocessed files
-        print("\nSaving preprocessed files...")
+        print("\nSaving preprocessed files.")
         tracks_df.to_csv('preprocessed_user_top_tracks.csv', index=False)
         artists_df.to_csv('preprocessed_user_top_artists.csv', index=False)
         albums_df.to_csv('preprocessed_user_top_albums.csv', index=False)
         spotify_df.to_csv('preprocessed_spotify_millsongdata.csv', index=False)
-        print("✓ Preprocessed files saved")
+        print("Preprocessed files saved")
     print("uniting dataset")
     df = tracks_df.copy()
     
@@ -166,7 +158,7 @@ def main(skip_preprocessing=True):
     df = filter_sparse_users(df, min_interactions=5)
     df = filter_sparse_tracks(df, min_users=3)
     df = normalize_playcounts(df)
-    df = create_implicit_feedback(df, threshold=0.5)
+    df = create_implicit_feedback(df, threshold=0.15)
     #df = merge_with_spotify_data(df, spotify_df)
     
     column_order = [
@@ -187,6 +179,6 @@ if __name__ == "__main__":
     skip = '--skip-preprocessing' in sys.argv or '-s' in sys.argv
     
     if skip:
-        print("Running with existing preprocessed files...\n")
+        print("Running with existing preprocessed files\n")
     
     main(skip_preprocessing=skip)
