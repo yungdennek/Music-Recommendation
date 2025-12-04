@@ -35,6 +35,39 @@ class ContentRecommender:
             artists.append(self.df.iloc[i[0]].artist)
         return artists
 
+    def get_song_similarity_scores(self, song_name: str, top_n: int = 10) -> List[Tuple[str, float]]:
+        """
+        Returns (song_name, similarity_score) tuples for hybrid integration.
+        Scores are raw cosine similarity values in [0, 1].
+        """
+        try:
+            idx = self.df.loc[self.df["song"] == song_name].index[0]
+        except IndexError:
+            return []
+        
+        distances = sorted(
+            list(enumerate(self.similarity_matrix[idx])),
+            reverse=True,
+            key=lambda x: x[1]
+        )
+        return [(self.df.iloc[i[0]].song, i[1]) for i in distances[1:top_n+1]]
+
+    def get_artist_similarity_scores(self, artist_name: str, top_n: int = 10) -> List[Tuple[str, float]]:
+        """
+        Returns (artist_name, similarity_score) tuples for hybrid integration.
+        """
+        try:
+            idx = self.df.loc[self.df["artist"] == artist_name].index[0]
+        except IndexError:
+            return []
+        
+        distances = sorted(
+            list(enumerate(self.similarity_matrix[idx])),
+            reverse=True,
+            key=lambda x: x[1]
+        )
+        return [(self.df.iloc[i[0]].artist, i[1]) for i in distances[1:top_n+1]]
+
 class CollaborativeRecommender:
     def __init__(self, tracks_df: pd.DataFrame, artists_df: pd.DataFrame, albums_df: pd.DataFrame):
         self.tracks_df = tracks_df
@@ -174,3 +207,32 @@ class CollaborativeRecommender:
 
         # Deduplicate
         return {k: list(set(v)) for k, v in recommendations.items()}
+
+    def recommend_with_scores(self, user_id: int, threshold: float = 5, top_n: int = 10) -> List[Tuple[str, float]]:
+        """
+        Returns (song_name, score) tuples for hybrid integration.
+        Score is based on how many similar users also listen to the song.
+        """
+        similar_users = []
+        for i in range(1, 100):
+            if i == user_id:
+                continue
+            sim_score = self.calculate_user_similarity(user_id, i)
+            if sim_score > threshold:
+                similar_users.append((i, sim_score))
+        
+        if not similar_users:
+            return []
+        
+        current_songs = set(self.get_top_items(user_id, 'songs'))
+        song_scores: Dict[str, float] = {}
+        
+        for sim_user, user_sim in similar_users:
+            user_songs = self.get_top_items(sim_user, 'songs')
+            for song in user_songs:
+                if song not in current_songs:
+                    song_scores[song] = song_scores.get(song, 0) + user_sim
+        
+        # Sort by score and return top_n
+        sorted_songs = sorted(song_scores.items(), key=lambda x: x[1], reverse=True)
+        return sorted_songs[:top_n]
