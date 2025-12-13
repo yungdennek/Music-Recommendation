@@ -219,6 +219,8 @@ recommendations = collab_rec.recommend_new_music(user_id, threshold=5)
 
 User similarity is computed using TF-IDF weighted comparison of listening histories across songs, artists, and albums.
 
+In addition to this primary CF pipeline, we implemented a lightweight, heuristic user-based method for interactive demos: given a set of seed tracks, we first identify candidate users who listened to those tracks, then sample pairs of users with similar top-track profiles, and finally recommend tracks that are shared within those users' listening histories.
+
 \subsection{Hybrid Recommendations}
 
 The hybrid approach combines both signals:
