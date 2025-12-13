@@ -39,7 +39,7 @@ Raeeka Yusuf\\
 \maketitle
 
 \begin{abstract}
-This project presents a Music Recommendation System that combines content-based and collaborative filtering techniques to provide personalized music suggestions. Using the Yambda dataset of user-track interactions as the primary source, supplemented by the large-scale Last.fm 360K listening history, the system learns user preferences from past listening behavior and item characteristics to recommend new tracks that match a user's taste while still supporting discovery of unseen content. The architecture consists of modular components for data processing, content-based similarity, user-based collaborative filtering, and a hybrid layer that integrates both signals. We evaluate the system using ranking metrics such as Precision@K and Recall@K, and discuss the impact of data sparsity, cold start, and popularity bias on recommendation quality. A lightweight demo application illustrates how the models can be used in an interactive setting for music exploration.
+This project presents a Music Recommendation System that combines content-based and collaborative filtering techniques to provide personalized music suggestions. We use a large-scale Kaggle listening-history dataset of roughly 500K users (top tracks/artists/albums with playcounts) as the primary source of implicit user-item interactions, and supplement it with a Kaggle ``Spotify Million Song'' lyrics dataset to enable content-based similarity based on song text. The system learns user preferences from past listening behavior and item characteristics to recommend new tracks that match a user's taste while still supporting discovery of unseen content. The architecture consists of modular components for data processing, content-based similarity, user-based collaborative filtering, and a hybrid layer that integrates both signals. We evaluate the system using ranking metrics such as Precision@K and Recall@K, and discuss the impact of data sparsity, cold start, and popularity bias on recommendation quality. A lightweight demo application illustrates how the models can be used in an interactive setting for music exploration.
 \end{abstract}
 
 \noindent\textbf{Keywords:} Music Recommendation, Collaborative Filtering, Content-Based Filtering, Hybrid Recommender Systems, User Modeling, Personalization, Evaluation Metrics
@@ -70,25 +70,9 @@ The Music Recommendation System follows a modular architecture separating data p
 
 \subsection{Datasets}
 
-\subsubsection{Yambda Dataset (Primary)}
+\subsubsection{Music Listening Data (500K Users) (Primary)}
 
-The Yambda dataset serves as our primary data source, consisting of large-scale user-track interactions suitable for training and evaluating recommendation models.
-
-\begin{table}[H]
-\centering
-\caption{Yambda Dataset Statistics}
-\begin{tabular}{ll}
-\toprule
-\textbf{Attribute} & \textbf{Value} \\
-\midrule
-Total Interactions & $\sim$4.79 billion \\
-Unique Users & $\sim$1 million \\
-Unique Tracks & $\sim$9.39 million \\
-Feedback Types & Implicit and Explicit \\
-Audio Embeddings & Available for $\sim$7.72M tracks \\
-\bottomrule
-\end{tabular}
-\end{table}
+Our primary dataset is a large-scale Kaggle listening-history dataset with roughly 500K users. It provides user-level ``top'' lists (tracks, artists, albums) with associated playcounts, which we treat as implicit feedback for training and evaluating recommendation models.
 
 For the course project, we use a preprocessed subset with the following characteristics:
 
@@ -113,24 +97,9 @@ Positive Feedback Rate & 16.1\% \\
 \end{tabular}
 \end{table}
 
-\subsubsection{Last.fm 360K (Supplementary)}
+\subsubsection{Spotify Million Song Dataset (Lyrics) (Supplementary)}
 
-\begin{table}[H]
-\centering
-\caption{Last.fm 360K Dataset Statistics}
-\begin{tabular}{ll}
-\toprule
-\textbf{Attribute} & \textbf{Value} \\
-\midrule
-Unique Users & $\sim$360,000 \\
-Listening Events & $\sim$17 million \\
-Unique Artists & $\sim$160,000 \\
-Features & User ID, Artist ID, Artist Name, Play Count \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-This dataset is used primarily for interpretable demos and visualizations, showing recommended artists by name and illustrating how our approaches transfer from anonymous IDs to human-readable music recommendations.
+We additionally use a Kaggle dataset commonly referred to as the ``Spotify Million Song'' dataset, which contains track metadata and lyric text. This dataset is used to support content-based recommendation (e.g., TF-IDF over lyric text) and to make the demo outputs more interpretable.
 
 \subsection{Data Processing Pipeline}
 
@@ -487,7 +456,7 @@ User tastes and item relevance change over time. Addressed via:
 \begin{enumerate}
     \item \textbf{Offline evaluation only}: All metrics are computed on held-out data. Real user satisfaction may differ from Precision@K scores. A/B testing would provide stronger evidence of recommendation quality.
     
-    \item \textbf{Dataset biases}: The Last.fm data skews toward Western music and certain genres (indie, alternative, pop). Users with niche tastes may receive less relevant recommendations.
+    \item \textbf{Dataset biases}: The datasets used are sourced from public listening histories and lyric corpora and may skew toward Western music and popular genres. Users with niche tastes may receive less relevant recommendations.
     
     \item \textbf{Scalability constraints}: Current implementation loads full interaction matrices into memory. Production deployment would require approximate nearest neighbor search (e.g., Annoy, FAISS) and distributed computation.
     
@@ -544,7 +513,7 @@ Several directions could extend and improve this work:
 
 \begin{itemize}
     \item Spectral analysis of audio content
-    \item Pre-trained audio embeddings (e.g., from Yambda's embedding data)
+    \item Pre-trained audio embeddings (when available from an external audio feature source)
     \item Multi-modal fusion of audio, text, and interaction signals
 \end{itemize}
 
@@ -574,9 +543,9 @@ Several directions could extend and improve this work:
     
     \item Surprise Library Documentation. \url{https://surpriselib.com/}
     
-    \item Last.fm Dataset. \url{https://www.upf.edu/web/mtg/lastfm360k}
+    \item Spotify Million Song Dataset (Kaggle). \url{https://www.kaggle.com/datasets/notshrirang/spotify-million-song-dataset}
     
-    \item Yambda Dataset. \url{https://huggingface.co/datasets/yandex/yambda}
+    \item Music Listening Data (500K Users) (Kaggle). \url{https://www.kaggle.com/datasets/gabrielkahen/music-listening-data-500k-users}
     
     \item Lops, P., de Gemmis, M., \& Semeraro, G. (2011). Content-based Recommender Systems: State of the Art and Trends. In \textit{Recommender Systems Handbook} (pp. 73--105). Springer.
     
