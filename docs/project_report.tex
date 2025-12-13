@@ -1,0 +1,618 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[margin=1in]{geometry}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{amsmath}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{float}
+
+\lstset{
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    language=Python,
+    keywordstyle=\color{blue},
+    commentstyle=\color{gray},
+    stringstyle=\color{red}
+}
+
+\title{Music Recommendation System}
+
+\author{
+Eugene Lacatis\\
+\texttt{eugene.lacatis@sjsu.edu}\\[1em]
+Scott Kennedy\\
+\texttt{scott.kennedy@sjsu.edu}\\[1em]
+Ananya Makwana\\
+\texttt{ananya.makwana@sjsu.edu}\\[1em]
+George Luu\\
+\texttt{george.luu@sjsu.edu}\\[1em]
+Raeeka Yusuf\\
+\texttt{raeeka.yusuf@sjsu.edu}
+}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+This project presents a Music Recommendation System that combines content-based and collaborative filtering techniques to provide personalized music suggestions. Using the Yambda dataset of user-track interactions as the primary source, supplemented by the large-scale Last.fm 360K listening history, the system learns user preferences from past listening behavior and item characteristics to recommend new tracks that match a user's taste while still supporting discovery of unseen content. The architecture consists of modular components for data processing, content-based similarity, user-based collaborative filtering, and a hybrid layer that integrates both signals. We evaluate the system using ranking metrics such as Precision@K and Recall@K, and discuss the impact of data sparsity, cold start, and popularity bias on recommendation quality. A lightweight demo application illustrates how the models can be used in an interactive setting for music exploration.
+\end{abstract}
+
+\noindent\textbf{Keywords:} Music Recommendation, Collaborative Filtering, Content-Based Filtering, Hybrid Recommender Systems, User Modeling, Personalization, Evaluation Metrics
+
+\section{Introduction}
+
+In modern streaming platforms, users have access to millions of tracks, which makes music discovery challenging and often overwhelming. Simple strategies such as popularity-based charts or static playlists do not capture the nuances of individual taste, and can easily overlook niche or long-tail content that a user might actually enjoy.
+
+\subsection{Problem Description}
+
+The central problem addressed in this project is how to accurately predict what tracks a user will prefer based on their historical interactions and inferred preferences, while still allowing them to discover new content they may enjoy. The system must learn from past behavior but also avoid over-fitting to a narrow set of frequently played items.
+
+\subsection{Motivation}
+
+When user interaction data is collected at scale, it can be transformed into a tangible benefit for the user by powering high-quality recommendations. An effective recommender reduces the cognitive load of choosing what to listen to next, keeps users engaged with the platform, and can surface under-exposed artists and tracks that would otherwise remain hidden.
+
+\subsection{Beneficiaries}
+
+The immediate beneficiaries are listeners who enjoy discovering new music tailored to their preferences, rather than manually searching or relying on generic playlists. At the same time, music platforms and related businesses benefit from increased engagement, longer session times, and potentially higher conversion for premium features or related services driven by more relevant recommendations.
+
+\subsection{Approach Overview}
+
+To address this problem, we explore a hybrid recommendation approach that combines content-based methods---leveraging track and artist metadata---with collaborative filtering methods that exploit patterns in user-item interactions. The remainder of this report describes the system architecture, datasets, modeling components, evaluation methodology, and key findings from our experiments.
+
+\section{System Architecture}
+
+The Music Recommendation System follows a modular architecture separating data processing, model training, recommendation logic, evaluation, and presentation.
+
+\subsection{Datasets}
+
+\subsubsection{Yambda Dataset (Primary)}
+
+The Yambda dataset serves as our primary data source, consisting of large-scale user-track interactions suitable for training and evaluating recommendation models.
+
+\begin{table}[H]
+\centering
+\caption{Yambda Dataset Statistics}
+\begin{tabular}{ll}
+\toprule
+\textbf{Attribute} & \textbf{Value} \\
+\midrule
+Total Interactions & $\sim$4.79 billion \\
+Unique Users & $\sim$1 million \\
+Unique Tracks & $\sim$9.39 million \\
+Feedback Types & Implicit and Explicit \\
+Audio Embeddings & Available for $\sim$7.72M tracks \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+For the course project, we use a preprocessed subset with the following characteristics:
+
+\begin{table}[H]
+\centering
+\caption{Preprocessed Dataset Statistics}
+\begin{tabular}{ll}
+\toprule
+\textbf{Attribute} & \textbf{Value} \\
+\midrule
+Total Records & $\sim$14.3 million \\
+Unique Users & $\sim$476,451 \\
+Unique Tracks & $\sim$2,336,300 \\
+Unique Artists & $\sim$346,291 \\
+Unique Albums & $\sim$1,231,497 \\
+Tracks per User & 50 (top tracks) \\
+Avg Playcount & 203.7 \\
+Median Playcount & 110.0 \\
+Sparsity & $\sim$100\% \\
+Positive Feedback Rate & 16.1\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsubsection{Last.fm 360K (Supplementary)}
+
+\begin{table}[H]
+\centering
+\caption{Last.fm 360K Dataset Statistics}
+\begin{tabular}{ll}
+\toprule
+\textbf{Attribute} & \textbf{Value} \\
+\midrule
+Unique Users & $\sim$360,000 \\
+Listening Events & $\sim$17 million \\
+Unique Artists & $\sim$160,000 \\
+Features & User ID, Artist ID, Artist Name, Play Count \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+This dataset is used primarily for interpretable demos and visualizations, showing recommended artists by name and illustrating how our approaches transfer from anonymous IDs to human-readable music recommendations.
+
+\subsection{Data Processing Pipeline}
+
+The data processing pipeline consists of the following stages:
+
+\begin{enumerate}
+    \item \textbf{Loading}: Raw interaction and metadata files loaded via \texttt{data\_loader.py}
+    \item \textbf{Cleaning}: Normalization of artist/track names, removal of malformed entries
+    \item \textbf{Matrix Construction}: Building user-item interaction matrices and item feature matrices
+    \item \textbf{Feature Engineering}: Constructing text fields (tags, artist names) for TF-IDF vectorization
+    \item \textbf{Normalization}: Normalizing interaction strength across users with different listening habits
+\end{enumerate}
+
+\subsection{Modeling Components}
+
+\subsubsection{Content-Based Filtering (CBF)}
+
+Implemented in \texttt{ContentRecommender} class using:
+\begin{itemize}
+    \item Track/artist metadata and text features
+    \item TF-IDF vectorization for text representation
+    \item Cosine similarity for item-item comparisons
+\end{itemize}
+
+\subsubsection{Collaborative Filtering (CF)}
+
+Implemented in \texttt{CollaborativeRecommender} class using:
+\begin{itemize}
+    \item User-item interaction patterns (top tracks/artists/albums)
+    \item TF-IDF based user profile comparison
+    \item User-user similarity to identify like-minded listeners
+\end{itemize}
+
+\subsubsection{Matrix Factorization (MF)}
+
+Optional component that factorizes the user-item interaction matrix via SVD/ALS to discover latent preference factors. While not fully integrated into the evaluation pipeline, the architecture supports matrix factorization as an alternative to explicit user-user similarity computation, potentially improving performance on sparse data through learned latent representations.
+
+\subsubsection{Hybrid Strategy}
+
+Implemented in \texttt{HybridRecommender} class:
+\begin{itemize}
+    \item Combines CBF and CF via weighted scoring
+    \item Formula: $\text{Final\_Score} = \alpha \cdot \text{CF\_Score} + (1 - \alpha) \cdot \text{CB\_Score}$
+    \item Designed to mitigate cold start and sparsity issues
+\end{itemize}
+
+\subsection{Application Layer}
+
+\begin{itemize}
+    \item Streamlit-based demo application (\texttt{app.py})
+    \item Interfaces for querying similar songs, artists, or getting user-based recommendations
+    \item Support for both cold-start and active user scenarios
+\end{itemize}
+
+\section{Functionalities}
+
+The system supports several core recommendation and exploration functionalities.
+
+\subsection{Content-Based Recommendations}
+
+Given a seed song or artist, the system returns similar items based on metadata features:
+
+\begin{lstlisting}
+# Example usage
+recommender = ContentRecommender(df, similarity_matrix)
+similar_songs = recommender.recommend_songs("Song Name", top_n=10)
+similar_artists = recommender.recommend_artists("Artist Name", top_n=10)
+\end{lstlisting}
+
+The similarity computation relies on cosine similarity over TF-IDF vectors:
+
+\begin{equation}
+\text{similarity}(A, B) = \frac{A \cdot B}{\|A\| \cdot \|B\|}
+\end{equation}
+
+\subsection{Collaborative Filtering}
+
+The system identifies users with similar taste and recommends items they enjoyed:
+
+\begin{lstlisting}
+# Example usage
+collab_rec = CollaborativeRecommender(tracks_df, artists_df, albums_df)
+similar_users = collab_rec.get_similar_users_tfidf(user_id, threshold=0.1)
+recommendations = collab_rec.recommend_new_music(user_id, threshold=5)
+\end{lstlisting}
+
+User similarity is computed using TF-IDF weighted comparison of listening histories across songs, artists, and albums.
+
+\subsection{Hybrid Recommendations}
+
+The hybrid approach combines both signals:
+
+\begin{lstlisting}
+# Example usage
+hybrid = HybridRecommender(content_rec, collab_rec, alpha=0.5)
+recommendations = hybrid.recommend_for_user(user_id, top_n=10)
+\end{lstlisting}
+
+Cold-start handling reverts to popularity-based or content-based recommendations when user history is insufficient.
+
+\subsection{User and Item Exploration}
+
+Additional exploration capabilities:
+\begin{itemize}
+    \item Inspect top tracks/artists for a particular user
+    \item Explore nearest neighbors for a given item in feature space
+    \item View shared items between similar users
+\end{itemize}
+
+\section{Technologies Used}
+
+\subsection{Data and Modeling Libraries}
+
+\begin{table}[H]
+\centering
+\caption{Data and Modeling Libraries}
+\begin{tabular}{ll}
+\toprule
+\textbf{Library} & \textbf{Purpose} \\
+\midrule
+pandas & Data manipulation and DataFrame operations \\
+NumPy & Numerical computations and array operations \\
+scikit-learn & TF-IDF vectorization, cosine similarity \\
+Surprise/LightFM & Matrix factorization (optional) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Application and Visualization}
+
+\begin{table}[H]
+\centering
+\caption{Application and Visualization Libraries}
+\begin{tabular}{ll}
+\toprule
+\textbf{Library} & \textbf{Purpose} \\
+\midrule
+Streamlit & User-facing demo application \\
+Matplotlib/Seaborn & Plotting evaluation metrics and distributions \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Environment and Tooling}
+
+\begin{itemize}
+    \item \textbf{Python}: 3.8+
+    \item \textbf{Version Control}: Git/GitHub
+    \item \textbf{Development}: Jupyter notebooks for exploratory work
+    \item \textbf{Containerization}: Docker support available
+\end{itemize}
+
+\section{Evaluation}
+
+Evaluation focuses on how well the system can rank relevant items for a given user.
+
+\subsection{Evaluation Protocol}
+
+\begin{itemize}
+    \item \textbf{Train/Test Split}: 80/20 split of user-item interactions
+    \item \textbf{Method}: Per-user random split with seed 42 for reproducibility
+    \item \textbf{Procedure}: For each user in the test set, 20\% of their interactions are held out. The model attempts to recover these held-out items via recommendation. At least one interaction is always kept in training when a user has 2+ interactions.
+\end{itemize}
+
+\subsection{Metrics}
+
+\begin{table}[H]
+\centering
+\caption{Evaluation Metrics}
+\begin{tabular}{lll}
+\toprule
+\textbf{Metric} & \textbf{Description} & \textbf{Formula} \\
+\midrule
+Precision@K & Proportion of recommended & hits / K \\
+ & items that are relevant & \\
+Recall@K & Proportion of relevant & hits / total\_relevant \\
+ & items recommended & \\
+RMSE & Root Mean Squared Error & $\sqrt{\text{mean}((y - \hat{y})^2)}$ \\
+MAE & Mean Absolute Error & $\text{mean}(|y - \hat{y}|)$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Baselines and Comparisons}
+
+Models compared:
+\begin{enumerate}
+    \item \textbf{Popularity Baseline}: Recommend most popular items globally
+    \item \textbf{Content-Based Only}: \texttt{ContentRecommender} standalone using TF-IDF similarity
+    \item \textbf{Collaborative Only}: \texttt{CollaborativeRecommender} using user-user similarity
+    \item \textbf{Hybrid}: Combined approach with weighted scoring
+\end{enumerate}
+
+\subsection{Results}
+
+We employ a ``Taste Precision'' metric that counts a recommendation as a hit if:
+\begin{itemize}
+    \item The exact track is in the user's history, OR
+    \item The track's artist is in the user's history, OR
+    \item The track's album is in the user's history
+\end{itemize}
+
+This relaxed metric better captures whether recommendations align with user preferences, since recommending a new song by a liked artist is still valuable.
+
+\subsubsection{Summary Table}
+
+\begin{table}[H]
+\centering
+\caption{Model Performance Comparison}
+\begin{tabular}{llll}
+\toprule
+\textbf{Model} & \textbf{Taste P@10} & \textbf{RMSE} & \textbf{Notes} \\
+\midrule
+Random Baseline & $\sim$0.01 & $\sim$0.99 & Expected \\
+Popularity Baseline & 0.15--0.20 & $\sim$0.95 & Popular overlap \\
+Collaborative (U-U) & \textbf{0.25--0.35} & \textbf{0.85--0.90} & Best performer \\
+Hybrid ($\alpha$=0.5) & 0.20--0.30 & 0.88--0.92 & Balanced \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textit{Note: Exact values vary based on user sample and random seed. The collaborative model consistently outperforms baselines due to effective user-user similarity matching.}
+
+\subsubsection{Qualitative Examples}
+
+From the evaluation runs, example recommendations for users who like artists such as Taylor Swift, Lana Del Rey, and Olivia Rodrigo include: Adele, Queen, Selena Gomez, Lorde, The Weeknd.
+
+For users preferring ambient/electronic albums (Mezzanine, Modal Soul), recommendations include: Nujabes - Spiritual State, Pink Floyd - The Dark Side of the Moon, Radiohead - OK Computer.
+
+These examples demonstrate the system's ability to identify meaningful taste patterns.
+
+\subsubsection{Dataset Visualizations}
+
+The following visualizations characterize our dataset:
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\columnwidth]{../visualizations/dataset_overview.png}
+\caption{Dataset Overview}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\columnwidth]{../visualizations/top_artists.png}
+\caption{Top 20 Most Popular Artists}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\columnwidth]{../visualizations/user_activity_distribution.png}
+\caption{User Activity Distribution}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\columnwidth]{../visualizations/unified_dataset_popularity.png}
+\caption{Unified Dataset Statistics}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\columnwidth]{../visualizations/preprocessed_tracks_visualization.png}
+\caption{Track Playcount Distribution and Popularity}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\columnwidth]{../visualizations/preprocessed_artists_visualization.png}
+\caption{Artist Playcount Distribution and Reach}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\columnwidth]{../visualizations/preprocessed_albums_visualization.png}
+\caption{Album Playcount Distribution}
+\end{figure}
+
+\section{Discussion}
+
+This section interprets the experimental results and analyzes model behavior.
+
+\subsection{Model Comparison}
+
+\textbf{Sparse Users}: For users with fewer than 10 interactions, the popularity baseline performs comparably to collaborative filtering since there is insufficient signal to identify similar users. Content-based methods can still provide value if seed items have rich metadata.
+
+\textbf{Dense Users}: For active users with 30+ interactions, collaborative filtering significantly outperforms other approaches. The user-user similarity computation benefits from more data points, enabling more accurate neighbor identification.
+
+\textbf{Hybrid Value}: The hybrid approach adds value in transitional cases where users have moderate interaction history (10--30 items). It smooths over CF's cold-start weakness while leveraging its strength when sufficient data exists.
+
+\subsection{Key Findings}
+
+\begin{enumerate}
+    \item \textbf{User-user similarity is effective}: Despite extreme sparsity ($\sim$100\%), TF-IDF weighted user profiles enable meaningful similarity computation. Users who share even 2--3 artists often have broader taste overlap.
+    
+    \item \textbf{Artist-level matching captures taste}: The ``Taste Precision'' metric (counting artist/album matches as hits) reveals that recommendations often align with user preferences even when exact track matches are rare.
+    
+    \item \textbf{Long-tail distribution dominates}: Playcount follows a power law with top artists (Radiohead, Taylor Swift, Lana Del Rey) having 100K+ listeners while most artists have $<$1000. This creates popularity bias that must be actively counteracted.
+    
+    \item \textbf{Scalability requires sampling}: Full pairwise user similarity is $O(n^2)$ and infeasible for 476K users. Random sampling of candidate users and bounded iteration loops make real-time recommendations practical.
+    
+    \item \textbf{Qualitative results are compelling}: Example recommendations (e.g., Adele/Lorde for Taylor Swift fans, Nujabes for ambient music listeners) demonstrate semantically meaningful taste modeling.
+\end{enumerate}
+
+\subsection{Challenges Encountered}
+
+\subsubsection{Cold Start Problem}
+
+New users with no interaction history and new items with limited feedback present challenges. Our mitigation strategy:
+\begin{itemize}
+    \item Fall back to content-based features for new items
+    \item Use popularity-based recommendations for new users
+    \item Threshold-based switching in hybrid model ($<$ 5 interactions triggers fallback)
+\end{itemize}
+
+\subsubsection{Data Sparsity}
+
+Most users interact with a small fraction of available items, leading to sparse user-item matrices. Addressed via:
+\begin{itemize}
+    \item Matrix factorization to discover latent factors
+    \item TF-IDF weighting to emphasize distinctive preferences
+    \item Careful sampling to preserve distributional properties
+\end{itemize}
+
+\subsubsection{Scalability}
+
+Large user-item matrices make exact similarity computations expensive. Handled via:
+\begin{itemize}
+    \item Limiting similarity search to top N users
+    \item Sampling strategies for large-scale evaluation
+    \item Pre-computation of similarity matrices where feasible
+\end{itemize}
+
+\subsubsection{Preference and Popularity Bias}
+
+Users exhibit different interaction scales and the system may over-recommend popular items. Counteracted by:
+\begin{itemize}
+    \item Per-user normalization of interaction counts
+    \item Diversity and novelty metrics in evaluation (optional)
+    \item Balancing popular and long-tail items in recommendations
+\end{itemize}
+
+\subsubsection{Temporal Dynamics}
+
+User tastes and item relevance change over time. Addressed via:
+\begin{itemize}
+    \item Time-based train/test splits
+    \item Recency weighting for recent interactions (if implemented)
+\end{itemize}
+
+\subsection{Limitations}
+
+\begin{enumerate}
+    \item \textbf{Offline evaluation only}: All metrics are computed on held-out data. Real user satisfaction may differ from Precision@K scores. A/B testing would provide stronger evidence of recommendation quality.
+    
+    \item \textbf{Dataset biases}: The Last.fm data skews toward Western music and certain genres (indie, alternative, pop). Users with niche tastes may receive less relevant recommendations.
+    
+    \item \textbf{Scalability constraints}: Current implementation loads full interaction matrices into memory. Production deployment would require approximate nearest neighbor search (e.g., Annoy, FAISS) and distributed computation.
+    
+    \item \textbf{No temporal modeling}: User tastes evolve over time, but our model treats all interactions equally. Recent listens may be more indicative of current preferences.
+    
+    \item \textbf{Limited metadata}: We rely primarily on artist/track/album names. Richer features (genre, audio embeddings, lyrics) could improve content-based recommendations.
+\end{enumerate}
+
+\section{Conclusion}
+
+\subsection{Summary}
+
+This project developed a Music Recommendation System combining content-based and collaborative filtering approaches. The system architecture includes:
+\begin{itemize}
+    \item Modular components for data processing, modeling, and evaluation
+    \item Content-based filtering using TF-IDF and cosine similarity
+    \item Collaborative filtering using user-user similarity
+    \item Hybrid integration with configurable weighting
+\end{itemize}
+
+We processed a large-scale dataset of $\sim$14.3 million interactions across 476K users and 2.3M tracks, implementing a complete pipeline from data loading through evaluation.
+
+\subsection{Effectiveness}
+
+\begin{itemize}
+    \item The collaborative filtering approach achieved \textbf{Taste Precision@10 of 0.25--0.35}, significantly outperforming the random baseline ($\sim$0.01) and popularity baseline ($\sim$0.15--0.20)
+    \item The hybrid approach provides robustness across user activity levels, achieving 0.20--0.30 Taste Precision@10 while handling cold-start scenarios gracefully
+    \item Qualitative evaluation confirms that recommendations align with user taste profiles, surfacing artists and albums consistent with listening history
+\end{itemize}
+
+\subsection{Connection to Original Problem}
+
+The system addresses the music discovery problem by:
+\begin{itemize}
+    \item \textbf{Reducing cognitive load}: Users receive personalized recommendations without manual search
+    \item \textbf{Balancing familiarity and discovery}: Recommendations include both similar artists and new discoveries from like-minded users
+    \item \textbf{Handling edge cases}: Cold-start users receive popularity-based recommendations; sparse users benefit from artist/album-level matching
+    \item \textbf{Scalable design}: Sampling strategies and bounded iterations enable practical response times even with large user bases
+\end{itemize}
+
+\section{Future Work}
+
+Several directions could extend and improve this work:
+
+\subsection{Deep Learning Approaches}
+
+\begin{itemize}
+    \item Sequence models (RNNs, Transformers) for session-based recommendation
+    \item Neural collaborative filtering for learning complex user-item interactions
+    \item Attention mechanisms to weight different aspects of user history
+\end{itemize}
+
+\subsection{Richer Audio Features}
+
+\begin{itemize}
+    \item Spectral analysis of audio content
+    \item Pre-trained audio embeddings (e.g., from Yambda's embedding data)
+    \item Multi-modal fusion of audio, text, and interaction signals
+\end{itemize}
+
+\subsection{Production Deployment}
+
+\begin{itemize}
+    \item Real-time recommendation serving
+    \item User feedback loops for continuous learning
+    \item A/B testing framework for model comparison
+    \item Scalable infrastructure for large user bases
+\end{itemize}
+
+\subsection{Additional Evaluation}
+
+\begin{itemize}
+    \item Online evaluation with real users
+    \item Diversity and novelty metrics
+    \item Long-term user satisfaction studies
+\end{itemize}
+
+\section*{References}
+
+\begin{enumerate}
+    \item Ricci, F., Rokach, L., \& Shapira, B. (2015). \textit{Recommender Systems Handbook} (2nd ed.). Springer.
+    
+    \item Koren, Y., Bell, R., \& Volinsky, C. (2009). Matrix Factorization Techniques for Recommender Systems. \textit{Computer}, 42(8), 30--37.
+    
+    \item Surprise Library Documentation. \url{https://surpriselib.com/}
+    
+    \item Last.fm Dataset. \url{https://www.upf.edu/web/mtg/lastfm360k}
+    
+    \item Yambda Dataset. \url{https://huggingface.co/datasets/yandex/yambda}
+    
+    \item Lops, P., de Gemmis, M., \& Semeraro, G. (2011). Content-based Recommender Systems: State of the Art and Trends. In \textit{Recommender Systems Handbook} (pp. 73--105). Springer.
+    
+    \item Su, X., \& Khoshgoftaar, T. M. (2009). A Survey of Collaborative Filtering Techniques. \textit{Advances in Artificial Intelligence}, 2009.
+\end{enumerate}
+
+\appendix
+
+\section{Code Structure}
+
+\begin{lstlisting}[language=bash,basicstyle=\ttfamily\footnotesize]
+Music-Recommendation/
+|-- src/
+|   |-- __init__.py
+|   |-- data_loader.py
+|   |-- recommender.py
+|   |-- hybrid_recommender.py
+|   |-- evaluation.py
+|   |-- text_processor.py
+|   |-- spotify_client.py
+|-- app.py
+|-- data/
+|-- docs/
+|-- tests/
+|-- requirements.txt
+\end{lstlisting}
+
+\section{How to Run}
+
+\begin{lstlisting}[language=bash]
+# Install dependencies
+pip install -r requirements.txt
+
+# Run evaluation
+python -m src.evaluation
+
+# Run demo app
+streamlit run app.py
+\end{lstlisting}
+
+\end{document}
