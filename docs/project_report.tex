@@ -575,6 +575,8 @@ Music-Recommendation/
 
 \section{How to Run}
 
+\textbf{Prerequisites:} Before running either setup, download the required datasets and place them in the \texttt{data/} directory. The top 50 songs/artists/albums datasets must be in the same directory as the notebook file for the demo to function correctly.
+
 \begin{lstlisting}[language=bash]
 # Install dependencies
 pip install -r requirements.txt
@@ -585,5 +587,14 @@ python -m src.evaluation
 # Run demo app
 streamlit run app.py
 \end{lstlisting}
+
+\subsection{Running the Jupyter Notebook Demo}
+
+\begin{enumerate}
+    \item Run all cells in the notebook sequentially.
+    \item In the demo section (with the UI), you can enter a set of songs. Use ``\texttt{ | }'' after each song to specify a particular artist.
+    \item Press ``Capture Songs'' then run the subsequent code blocks to receive recommended songs with YouTube video links.
+    \item For artist and album recommendations, enter artists and/or albums as a list into the \texttt{artist\_recommender} and \texttt{album\_recommender} functions.
+\end{enumerate}
 
 \end{document}
